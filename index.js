@@ -2,6 +2,12 @@ const express= require('express');
 const bodyParser=require('body-parser');
 const cors = require('cors');
 const MongoClient = require('mongodb').MongoClient;
+require('dotenv').config();
+console.log({ 
+            username: process.env.DB_USER,
+            password: process.env.DB_PASS
+           })
+
 
 // idToken verification
 const admin = require("firebase-admin");
@@ -17,9 +23,7 @@ admin.initializeApp({
 
 const databaseName='burjAlArab';
 const collections= 'bookings';
-const userName='arabian';
-const password='kRXf0eNYc6pereHt';
-const uri = "mongodb+srv://arabian:kRXf0eNYc6pereHt@cluster0.pjygh.mongodb.net/burjAlArab?retryWrites=true&w=majority";
+const uri = `mongodb+srv:// ${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.pjygh.mongodb.net/burjAlArab?retryWrites=true&w=majority`;
 
 const app=express();
 
@@ -55,31 +59,33 @@ app.get('/bookings',(req,res)=>{//check http://localhost:5000/bookings
 
   if(req.headers.authorization && req.headers.authorization.startsWith('Bearer ')){
   const idToken=req.headers.authorization.split(' ')[1];
-  console.log({idToken});//if we get this
+  // console.log({idToken});//if we get this
 
   admin.auth().verifyIdToken(idToken)
   .then((decodedToken) => {
     // const uid = decodedToken.uid;
-    const tokenEmail = decodedToken.email;
-    const queryEmail=req.query.email;
-    console.log(tokenEmail,queryEmail); 
-    if(tokenEmail==req.query.email){
 
+    if (decodedToken.email==req.query.email){
       // console.log(req.query.email);
       bookings.find({email: req.query.email}) //empty {} means all data has to be retrieved from cluster database
       // booking.find({}).limit()//limiting how many data we will retrieve from cluster database
       //booking.find({email: req.query.email})//accessing the 'email'property from database's data
-      
       .toArray((err,documents)=>{
-          res.send(documents);
+          return res.status(200).send(documents);//not necessarily dite hobe status code. But checking
       })
+    }
+    else{
+      res.status(401).send('Unauthorised access');
     }
     })
   .catch((error) => {
-    // Handle error
+    res.status(401).send('Unauthorised access');
   });
   }
-
+else{
+  // res.send('Unauthorised access');
+  res.status(401).send('Unauthorised access');
+}
 })
 
 })//client.connect
